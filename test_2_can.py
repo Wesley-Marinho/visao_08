@@ -2,7 +2,7 @@ import cv2
 
 # Acesse as câmeras
 cap1 = cv2.VideoCapture(0)  # Primeira câmera
-cap2 = cv2.VideoCapture(1)  # Segunda câmera
+cap2 = cv2.VideoCapture(2)  # Segunda câmera
 
 # Verifique se as câmeras foram abertas corretamente
 if not cap1.isOpened() or not cap2.isOpened():

@@ -1,67 +1,55 @@
 import cv2
 import numpy as np
 
-# Defina a distância entre as duas câmeras (baseline) e a distância focal
-baseline = 10.0  # Distância entre as duas câmeras em cm
-focal_length = 700.0  # Distância focal da câmera em pixels (ajuste conforme necessário)
+# Configurações para as câmeras
+camera_left = cv2.VideoCapture(0)  # ID da primeira câmera
+camera_right = cv2.VideoCapture(2)  # ID da segunda câmera
 
-# Abra as câmeras
-cap1 = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-cap2 = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+# Verificar se as câmeras estão abertas
+if not camera_left.isOpened() or not camera_right.isOpened():
+    print("Erro ao abrir as câmeras.")
+    exit()
 
-# Crie o objeto de correspondência estéreo
-stereo = cv2.StereoBM_create(numDisparities=16, blockSize=15)
+# Configurações para o cálculo do mapa de disparidade
+block_size = 5  # Tamanho do bloco para correspondência
+min_disp = 0  # Disparidade mínima
+num_disp = 16  # Número de disparidades
+
+# Criar objeto StereoBM
+stereo = cv2.StereoBM_create(numDisparities=num_disp, blockSize=block_size)
 
 while True:
-    # Capture os frames das duas câmeras
-    ret1, frame1 = cap1.read()
-    ret2, frame2 = cap2.read()
+    # Captura dos quadros das duas câmeras
+    ret_left, frame_left = camera_left.read()
+    ret_right, frame_right = camera_right.read()
 
-    # Verifique se os frames foram capturados corretamente
-    if not ret1 or not ret2:
-        print("Falha ao capturar as imagens")
+    if not ret_left or not ret_right:
+        print("Falha ao capturar imagens das câmeras.")
         break
 
-    # Converta os frames para escala de cinza
-    gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
-    gray2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+    # Converter as imagens para escala de cinza
+    gray_left = cv2.cvtColor(frame_left, cv2.COLOR_BGR2GRAY)
+    gray_right = cv2.cvtColor(frame_right, cv2.COLOR_BGR2GRAY)
 
-    # Compute o mapa de disparidade
-    disparity = stereo.compute(gray1, gray2).astype(np.float32) / 16.0
+    # Calcular o mapa de disparidade
+    disparity = stereo.compute(gray_left, gray_right)
 
-    # Calcule a profundidade (em cm) a partir do mapa de disparidade
-    with np.errstate(divide="ignore"):
-        depth = (baseline * focal_length) / (
-            disparity + 1e-5
-        )  # Para evitar divisão por zero
-
-    # Encontre o ponto mais próximo
-    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(disparity)
-
-    # Obtenha a profundidade no ponto mais próximo
-    nearest_distance = depth[min_loc[1], min_loc[0]]
-
-    # Exiba a distância na tela
-    cv2.putText(
-        frame1,
-        f"Distancia: {nearest_distance:.2f} cm",
-        (10, 30),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        1,
-        (0, 255, 0),
-        2,
+    # Normalizar o mapa de disparidade para exibição
+    disparity = cv2.normalize(
+        disparity, disparity, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX
     )
+    disparity = np.uint8(disparity)
 
-    # Mostre os frames e o mapa de disparidade
-    cv2.circle(frame1, min_loc, 5, (0, 0, 255), -1)
-    cv2.imshow("Frame 1", frame1)
-    cv2.imshow("Disparity", (disparity / 16).astype(np.uint8))
+    # Exibir as imagens capturadas e o mapa de disparidade
+    cv2.imshow("Esquerda", frame_left)
+    cv2.imshow("Direita", frame_right)
+    cv2.imshow("Mapa de Disparidade", disparity)
 
-    # Saia do loop ao pressionar 'q'
+    # Sair do loop quando a tecla 'q' for pressionada
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
-# Libere os recursos
-cap1.release()
-cap2.release()
+# Liberar as câmeras e fechar as janelas
+camera_left.release()
+camera_right.release()
 cv2.destroyAllWindows()
