@@ -1,7 +1,7 @@
 import cv2
 
 cap = cv2.VideoCapture(
-    0
+    2
 )  # Tente alterar o índice para 1, 2, etc., se houver várias câmeras
 
 if not cap.isOpened():
